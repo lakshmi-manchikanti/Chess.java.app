@@ -12,9 +12,9 @@ This project will be worked on by three people and will be mainly done inside of
 Development of this extension will be coded in Java and HTML and CSS.
 
 # Roles
--Deiren Smith
--Lakshmi Narasimha Manchikanti
--Cecillia Hollingsworth
+-Project Manager: Lakshmi Narasimha Manchikanti
+-Product Manager: Cecilia Hollingsworth
+-QA Analyst: Deiren Smith
 
 # Release Notes 10/21/24
 - We began the planning for our project. We created a github and did research on chess models. We also assigned roles.
