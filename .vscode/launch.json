@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Chess",
+            "request": "launch",
+            "mainClass": "com.example.Chess",
+            "vmArgs": "--module-path /path/to/javafx-sdk/lib --add-modules javafx.controls, javafx.fxml",
+            "projectName": "javafx-project"
+        }
+    ]
+}
