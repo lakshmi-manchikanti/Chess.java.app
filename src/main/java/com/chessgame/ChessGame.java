@@ -1,9 +1,9 @@
-package com.example;
+package com.chessgame;
 
 public class ChessGame {
     private ChessBoard board;
     private boolean whiteTurn = true;
-  
+
     public ChessGame() {
         this.board = new ChessBoard();
     }
@@ -13,7 +13,7 @@ public class ChessGame {
         if (movingPiece == null || movingPiece.getColor() != (whiteTurn ? PieceColor.WHITE : PieceColor.BLACK)) {
             return false; // No piece at the start position or not the player's turn
         }
-      
+
         if (movingPiece.isValidMove(end, board.getBoard())) {
             // Execute the move
             board.movePiece(start, end);
@@ -47,7 +47,7 @@ public class ChessGame {
                 }
             }
         }
-        throw new RuntimeException("King not found, which should never happen.");
+        throw new RuntimeException("King not found, which should never happen.");  
     }
 
     public boolean isCheckmate(PieceColor kingColor) {
@@ -74,13 +74,12 @@ public class ChessGame {
                 }
             }
         }
-  
         return true; // No legal moves available to escape check, so it's checkmate
     }
 
     private boolean isPositionOnBoard(Position position) {
         return position.getRow() >= 0 && position.getRow() < board.getBoard().length &&
-                position.getColumn() >= 0 && position.getColumn() < board.getBoard()[0].length;
+        position.getColumn() >= 0 && position.getColumn() < board.getBoard()[0].length;
     }
 
     private boolean wouldBeInCheckAfterMove(PieceColor kingColor, Position from, Position to) {
@@ -88,13 +87,13 @@ public class ChessGame {
         Piece temp = board.getPiece(to.getRow(), to.getColumn());
         board.setPiece(to.getRow(), to.getColumn(), board.getPiece(from.getRow(), from.getColumn()));
         board.setPiece(from.getRow(), from.getColumn(), null);
-  
+
         boolean inCheck = isInCheck(kingColor);
-  
+
         // Undo the move
         board.setPiece(from.getRow(), from.getColumn(), board.getPiece(to.getRow(), to.getColumn()));
         board.setPiece(to.getRow(), to.getColumn(), temp);
-  
+
         return inCheck;
     }
 }
