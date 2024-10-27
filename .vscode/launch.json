@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "ChessGameGUI",
+            "request": "launch",
+            "mainClass": "com.chessgame.ChessGameGUI",
+            "projectName": "6th-period-isp-cdl_9e88ebd"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
