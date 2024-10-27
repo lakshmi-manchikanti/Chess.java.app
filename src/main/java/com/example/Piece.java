@@ -1,15 +1,25 @@
 package com.example;
 
 public abstract class Piece {
-    protected String color;  // "white" or "black"
-
-    public Piece(String color) {
+    protected Position position;
+    protected PieceColor color;
+  
+    public Piece(PieceColor color, Position position) {
         this.color = color;
+        this.position = position;
     }
-
-    public String getColor() {
+  
+    public PieceColor getColor() {
         return color;
     }
-
-    public abstract boolean isValidMove(int startX, int startY, int endX, int endY, Piece[][] board);
+  
+    public Position getPosition() {
+        return position;
+    }
+  
+    public void setPosition(Position position) {
+        this.position = position;
+    }
+  
+    public abstract boolean isValidMove(Position newPosition, Piece[][] board);
 }
