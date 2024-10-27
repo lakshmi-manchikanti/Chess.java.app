@@ -55,11 +55,11 @@ public class ChessBoard {
 
     public Piece[][] getBoard() {
         return board;
-      }
+    }
       
       public Piece getPiece(int row, int column) {
         return board[row][column];
-      }
+    }
       
       public void setPiece(int row, int column, Piece piece) {
         board[row][column] = piece;
