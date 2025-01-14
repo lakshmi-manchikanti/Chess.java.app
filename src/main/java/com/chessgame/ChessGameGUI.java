@@ -23,6 +23,8 @@ public class ChessGameGUI extends JFrame {
       }
   };
 
+  private boolean isDarkTheme = false; // This variable controls the theme (dark/light)
+
   public ChessGameGUI() {
       setTitle("Chess Game");
       setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -101,7 +103,8 @@ public class ChessGameGUI extends JFrame {
   private void clearHighlights() {
       for (int row = 0; row < 8; row++) {
           for (int col = 0; col < 8; col++) {
-              squares[row][col].setBackground((row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
+              // Update background color depending on the theme (light or dark)
+              squares[row][col].setBackground(isDarkTheme ? new Color(105, 105, 105) : (row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
           }
       }
   }
@@ -113,8 +116,26 @@ public class ChessGameGUI extends JFrame {
       resetItem.addActionListener(e -> resetGame());
       gameMenu.add(resetItem);
       menuBar.add(gameMenu);
+
+      // Themes menu
+      JMenu themesMenu = new JMenu("Themes");
+      JMenuItem lightThemeItem = new JMenuItem("Light Theme");
+      JMenuItem darkThemeItem = new JMenuItem("Dark Theme");
+
+      lightThemeItem.addActionListener(e -> changeTheme(false)); // Switch to light theme
+      darkThemeItem.addActionListener(e -> changeTheme(true)); // Switch to dark theme
+
+      themesMenu.add(lightThemeItem);
+      themesMenu.add(darkThemeItem);
+      menuBar.add(themesMenu);
+
       setJMenuBar(menuBar);
   }
+
+    private void changeTheme(boolean dark) {
+        isDarkTheme = dark;
+        refreshBoard();  // Refresh the board with the new theme
+    }
 
   private void resetGame() {
       game.resetGame();
