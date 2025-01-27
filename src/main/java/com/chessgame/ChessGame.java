@@ -2,6 +2,7 @@ package com.chessgame;
 
 import java.util.List;
 import java.util.ArrayList;
+import javax.swing.JOptionPane;
 
 public class ChessGame {
   private ChessBoard board;
@@ -59,7 +60,38 @@ public class ChessGame {
       }
       return false;
   }
+  private void promotePawn(Pawn pawn, Position position) {
+        // Show dialog for piece selection (Queen, Rook, Bishop, or Knight)
+        String[] options = {"Queen", "Rook", "Bishop", "Knight"};
+        int choice = JOptionPane.showOptionDialog(null,
+                "Your pawn has reached the promotion row! Choose a piece to promote to:",
+                "Pawn Promotion",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null, options, options[0]);
 
+        Piece promotedPiece;
+        switch (choice) {
+            case 0:  // Queen
+                promotedPiece = new Queen(pawn.getColor(), position);
+                break;
+            case 1:  // Rook
+                promotedPiece = new Rook(pawn.getColor(), position);
+                break;
+            case 2:  // Bishop
+                promotedPiece = new Bishop(pawn.getColor(), position);
+                break;
+            case 3:  // Knight
+                promotedPiece = new Knight(pawn.getColor(), position);
+                break;
+            default:
+                promotedPiece = new Queen(pawn.getColor(), position);  // Default to Queen
+                break;
+        }
+
+        // Replace pawn with the promoted piece
+        board.setPiece(position.getRow(), position.getColumn(), promotedPiece);
+  }
   public boolean isInCheck(PieceColor kingColor) {
       Position kingPosition = findKingPosition(kingColor);
       for (int row = 0; row < board.getBoard().length; row++) {

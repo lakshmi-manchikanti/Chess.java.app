@@ -1,4 +1,5 @@
 package com.chessgame;
+import javax.swing.JOptionPane;
 
 public class Pawn extends Piece {
     public Pawn(PieceColor color, Position position) {
