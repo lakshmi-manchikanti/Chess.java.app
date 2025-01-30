@@ -1,10 +1,12 @@
 package com.chessgame;
 
 public class Rook extends Piece {
+    private boolean hasMoved = false;
+
     public Rook(PieceColor color, Position position) {
         super(color, position);
     }
-  
+
     @Override
     public boolean isValidMove(Position newPosition, Piece[][] board) {
         if (position.getRow() == newPosition.getRow()) {
@@ -26,14 +28,16 @@ public class Rook extends Piece {
         } else {
             return false;
         }
-  
+
         Piece destinationPiece = board[newPosition.getRow()][newPosition.getColumn()];
-        if (destinationPiece == null) {
-            return true;
-        } else if (destinationPiece.getColor() != this.getColor()) {
-            return true;
-        }
-  
-        return false;
+        return destinationPiece == null || destinationPiece.getColor() != this.getColor();
+    }
+
+    public void setHasMoved(boolean hasMoved) {
+        this.hasMoved = hasMoved;
+    }
+
+    public boolean hasMoved() {
+        return hasMoved;
     }
 }
