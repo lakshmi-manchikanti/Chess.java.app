@@ -9,6 +9,13 @@
             "name": "ChessGameGUI",
             "request": "launch",
             "mainClass": "com.chessgame.ChessGameGUI",
+            "projectName": "New Folder_6e5a71c0"
+        },
+        {
+            "type": "java",
+            "name": "ChessGameGUI",
+            "request": "launch",
+            "mainClass": "com.chessgame.ChessGameGUI",
             "projectName": "6th-period-isp-cdl_9e88ebd"
         },
         {

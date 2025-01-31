@@ -153,6 +153,11 @@ public class ChessGameGUI extends JFrame {
         themesMenu.add(darkThemeItem);
         menuBar.add(themesMenu);
 
+        JMenu boardsMenu = new JMenu("Boards");
+        JMenuItem woodItem = new JMenuItem("Wood");
+        menuBar.add(boardsMenu);
+        boardsMenu.add(woodItem);
+
         setJMenuBar(menuBar);
     }
 
