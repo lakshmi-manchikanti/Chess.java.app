@@ -23,6 +23,7 @@ public class ChessGameGUI extends JFrame {
     };
 
     private boolean isDarkTheme = false;
+    private String boardStyle = "Wood"; // Default board style
 
     public ChessGameGUI() {
         try {
@@ -70,7 +71,7 @@ public class ChessGameGUI extends JFrame {
                 Piece piece = board.getPiece(row, col);
                 if (piece != null) {
                     String symbol = pieceUnicodeMap.get(piece.getClass());
-                    Color color = (piece.getColor() == PieceColor.WHITE) ? Color.WHITE : Color.BLACK;
+                    Color color = piece.getColor() == PieceColor.WHITE ? Color.WHITE : (isDarkTheme ? Color.BLACK : Color.BLACK);
                     squares[row][col].setPieceSymbol(symbol, color);
                 } else {
                     squares[row][col].clearPieceSymbol();
@@ -78,6 +79,7 @@ public class ChessGameGUI extends JFrame {
             }
         }
 
+        clearHighlights();
         SwingUtilities.invokeLater(this::repaint);
     }
 
@@ -127,8 +129,18 @@ public class ChessGameGUI extends JFrame {
     private void clearHighlights() {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                squares[row][col].setBackground(isDarkTheme ? new Color(105, 105, 105) : (row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
+                squares[row][col].setBackground(getSquareColor(row, col));
             }
+        }
+    }
+
+    private Color getSquareColor(int row, int col) {
+        if (isDarkTheme) {
+            return (row + col) % 2 == 0 ? Color.DARK_GRAY : Color.GRAY;
+        } else if (boardStyle.equals("Light Wood")) {
+            return (row + col) % 2 == 0 ? new Color(245, 222, 179) : new Color(210, 180, 140);
+        } else { // Default "Wood" style
+            return (row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63);
         }
     }
 
@@ -155,14 +167,25 @@ public class ChessGameGUI extends JFrame {
 
         JMenu boardsMenu = new JMenu("Boards");
         JMenuItem woodItem = new JMenuItem("Wood");
-        menuBar.add(boardsMenu);
+        JMenuItem lightWoodItem = new JMenuItem("Light Wood");
+
+        woodItem.addActionListener(e -> changeBoardStyle("Wood"));
+        lightWoodItem.addActionListener(e -> changeBoardStyle("Light Wood"));
+
         boardsMenu.add(woodItem);
+        boardsMenu.add(lightWoodItem);
+        menuBar.add(boardsMenu);
 
         setJMenuBar(menuBar);
     }
 
     private void changeTheme(boolean dark) {
         isDarkTheme = dark;
+        refreshBoard();
+    }
+
+    private void changeBoardStyle(String style) {
+        boardStyle = style;
         refreshBoard();
     }
 
