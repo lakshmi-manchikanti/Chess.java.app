@@ -1,5 +1,7 @@
 package com.chessgame;
 
+import javax.swing.*;
+
 public class ChessBoard {
     private Piece[][] board;
     private Position lastDoubleStepPawn = null; // Track last double-step pawn move
@@ -74,6 +76,13 @@ public class ChessBoard {
 
             // Track new double-step pawn move
             lastDoubleStepPawn = (Math.abs(start.getRow() - end.getRow()) == 2) ? end : null;
+
+            // Handle pawn promotion (if pawn reaches promotion rank)
+            if ((movingPiece.getColor() == PieceColor.WHITE && end.getRow() == 0) ||
+                (movingPiece.getColor() == PieceColor.BLACK && end.getRow() == 7)) {
+                promotePawn((Pawn) movingPiece, end);
+                return; // Exit the method after promotion
+            }
         } else {
             lastDoubleStepPawn = null;
         }
@@ -105,6 +114,40 @@ public class ChessBoard {
             board[row][newRookCol] = rook;
             rook.setPosition(new Position(row, newRookCol));
             board[row][rookCol] = null;
+        }
+    }
+
+    // Promote a pawn when it reaches the promotion rank (0 for black, 7 for white)
+    private void promotePawn(Pawn pawn, Position position) {
+        // Prompt user to select a piece for promotion (via a GUI dialog)
+        String[] options = {"Queen", "Rook", "Bishop", "Knight"};
+        String selectedOption = (String) JOptionPane.showInputDialog(null,
+                "Choose a piece to promote your pawn to:",
+                "Pawn Promotion",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedOption != null) {
+            Piece promotedPiece = null;
+            switch (selectedOption) {
+                case "Queen":
+                    promotedPiece = new Queen(pawn.getColor(), position);
+                    break;
+                case "Rook":
+                    promotedPiece = new Rook(pawn.getColor(), position);
+                    break;
+                case "Bishop":
+                    promotedPiece = new Bishop(pawn.getColor(), position);
+                    break;
+                case "Knight":
+                    promotedPiece = new Knight(pawn.getColor(), position);
+                    break;
+            }
+
+            // Replace the pawn with the newly promoted piece
+            board[position.getRow()][position.getColumn()] = promotedPiece;
         }
     }
 }

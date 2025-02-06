@@ -89,6 +89,7 @@ public class ChessGameGUI extends JFrame {
             clearHighlights();
 
             if (moveResult) {
+                checkForPawnPromotion(row, col); // Check for pawn promotion
                 refreshBoard();
                 checkGameState();
                 checkGameOver();
@@ -98,6 +99,16 @@ public class ChessGameGUI extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred: " + e.getMessage());
+        }
+    }
+
+    private void checkForPawnPromotion(int row, int col) {
+        Piece piece = game.getBoard().getPiece(row, col);
+        if (piece instanceof Pawn) {
+            Pawn pawn = (Pawn) piece;
+            if ((pawn.getColor() == PieceColor.WHITE && row == 0) || (pawn.getColor() == PieceColor.BLACK && row == 7)) {
+                promotePawn(pawn);
+            }
         }
     }
 
@@ -138,7 +149,11 @@ public class ChessGameGUI extends JFrame {
         if (isDarkTheme) {
             return (row + col) % 2 == 0 ? Color.DARK_GRAY : Color.GRAY;
         } else if (boardStyle.equals("Light Wood")) {
-            return (row + col) % 2 == 0 ? new Color(245, 222, 179) : new Color(210, 180, 140);
+            return (row + col) % 2 == 0 ? new Color(245, 222, 179) : new Color(150, 75, 0);
+        } else if (boardStyle.equals("Dark Wood")) {
+            return (row + col) % 2 == 0 ? new Color(240, 217, 181) : new Color(101, 67, 33);
+        } else if (boardStyle.equals("Green Board")) {
+            return (row + col) % 2 == 0 ? new Color(238, 238, 210) : new Color(118, 150, 86);
         } else { // Default "Wood" style
             return (row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63);
         }
@@ -168,12 +183,18 @@ public class ChessGameGUI extends JFrame {
         JMenu boardsMenu = new JMenu("Boards");
         JMenuItem woodItem = new JMenuItem("Wood");
         JMenuItem lightWoodItem = new JMenuItem("Light Wood");
+        JMenuItem darkWoodItem = new JMenuItem("Dark Wood");
+        JMenuItem greenBoard = new JMenuItem("Green");
 
         woodItem.addActionListener(e -> changeBoardStyle("Wood"));
         lightWoodItem.addActionListener(e -> changeBoardStyle("Light Wood"));
+        darkWoodItem.addActionListener(e -> changeBoardStyle("Dark Wood"));
+        greenBoard.addActionListener(e -> changeBoardStyle("Green Board"));
 
         boardsMenu.add(woodItem);
         boardsMenu.add(lightWoodItem);
+        boardsMenu.add(darkWoodItem);
+        boardsMenu.add(greenBoard);
         menuBar.add(boardsMenu);
 
         setJMenuBar(menuBar);
@@ -207,6 +228,46 @@ public class ChessGameGUI extends JFrame {
         } else if (game.isStalemate(currentPlayer)) {
             JOptionPane.showMessageDialog(this, "Stalemate! The game is a draw.");
             resetGame();
+        }
+    }
+
+    // Add pawn promotion dialog
+    private void promotePawn(Pawn pawn) {
+        String[] options = {"Queen", "Rook", "Bishop", "Knight"};
+        String selectedOption = (String) JOptionPane.showInputDialog(this,
+                "Choose a piece to promote your pawn to:",
+                "Pawn Promotion",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+    
+        if (selectedOption != null) {
+            int row = pawn.getPosition().getRow();
+            int col = pawn.getPosition().getColumn();
+            
+            Piece promotedPiece = null;
+            switch (selectedOption) {
+                case "Queen":
+                    promotedPiece = new Queen(pawn.getColor(), pawn.getPosition());
+                    break;
+                case "Rook":
+                    promotedPiece = new Rook(pawn.getColor(), pawn.getPosition());
+                    break;
+                case "Bishop":
+                    promotedPiece = new Bishop(pawn.getColor(), pawn.getPosition());
+                    break;
+                case "Knight":
+                    promotedPiece = new Knight(pawn.getColor(), pawn.getPosition());
+                    break;
+            }
+    
+            // Debugging: Verify the new piece is being placed
+            System.out.println("Placing promoted piece: " + promotedPiece.getClass().getSimpleName() + " at (" + row + ", " + col + ")");
+            // Place the newly promoted piece in the same position
+            game.getBoard().setPiece(row, col, null); 
+            game.getBoard().setPiece(row, col, promotedPiece);  // Place the new piece
+            refreshBoard();  // Refresh the board to update the UI
         }
     }
 
