@@ -137,6 +137,7 @@ public class ChessGameGUI extends JFrame {
         }
     }
 
+
     private void clearHighlights() {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -245,7 +246,11 @@ public class ChessGameGUI extends JFrame {
         if (selectedOption != null) {
             int row = pawn.getPosition().getRow();
             int col = pawn.getPosition().getColumn();
-            
+    
+            // Remove the pawn from the board
+            game.getBoard().setPiece(row, col, null);
+    
+            // Create the promoted piece based on the user's selection
             Piece promotedPiece = null;
             switch (selectedOption) {
                 case "Queen":
@@ -262,12 +267,13 @@ public class ChessGameGUI extends JFrame {
                     break;
             }
     
-            // Debugging: Verify the new piece is being placed
-            System.out.println("Placing promoted piece: " + promotedPiece.getClass().getSimpleName() + " at (" + row + ", " + col + ")");
-            // Place the newly promoted piece in the same position
-            game.getBoard().setPiece(row, col, null); 
-            game.getBoard().setPiece(row, col, promotedPiece);  // Place the new piece
-            refreshBoard();  // Refresh the board to update the UI
+            // Place the promoted piece on the board
+            if (promotedPiece != null) {
+                game.getBoard().setPiece(row, col, promotedPiece);
+            }
+    
+            // Refresh the board to reflect the changes
+            refreshBoard();
         }
     }
 
@@ -276,7 +282,7 @@ public class ChessGameGUI extends JFrame {
             System.out.println("Error: Headless environment detected. GUI cannot be created.");
             System.exit(1);
         } else {
-            System.setProperty("sun.java2d.uiScale", "3");
+            System.setProperty("sun.java3d.uiScale", "4");
             SwingUtilities.invokeLater(ChessGameGUI::new);
         }
     }

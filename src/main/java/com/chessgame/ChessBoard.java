@@ -81,9 +81,11 @@ public class ChessBoard {
             if ((movingPiece.getColor() == PieceColor.WHITE && end.getRow() == 0) ||
                 (movingPiece.getColor() == PieceColor.BLACK && end.getRow() == 7)) {
                 promotePawn((Pawn) movingPiece, end);
+                board[start.getRow()][start.getColumn()] = null;
                 return; // Exit the method after promotion
             }
-        } else {
+        } 
+        else {
             lastDoubleStepPawn = null;
         }
 
@@ -144,8 +146,7 @@ public class ChessBoard {
                 case "Knight":
                     promotedPiece = new Knight(pawn.getColor(), position);
                     break;
-            }
-
+            } 
             // Replace the pawn with the newly promoted piece
             board[position.getRow()][position.getColumn()] = promotedPiece;
         }
