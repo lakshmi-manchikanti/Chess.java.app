@@ -24,6 +24,7 @@ public class ChessGameGUI extends JFrame {
 
     private boolean isDarkTheme = false;
     private String boardStyle = "Wood"; // Default board style
+    private boolean stockfishPlaysBlack = false; // Toggle for Stockfish playing as Black
 
     public ChessGameGUI() {
         try {
@@ -32,11 +33,28 @@ public class ChessGameGUI extends JFrame {
             e.printStackTrace();
         }
 
-        setTitle("Chess Game");
+        setTitle("Chess Game with Stockfish");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(8, 8));
-        initializeBoard();
-        addMenuOptions();
+        setLayout(new BorderLayout()); // Changed to BorderLayout for board and side panel
+
+        // Add menu bar
+        addMenuOptions(); // Ensure menu bar is created and added
+
+        // Initialize the chess board panel with file and rank labels
+        JPanel boardPanel = new JPanel(new GridBagLayout());
+        initializeBoard(boardPanel); // Pass the panel to initializeBoard
+        add(boardPanel, BorderLayout.CENTER);
+
+        // Add side panel for bot selection
+        add(createSidePanel(), BorderLayout.EAST);
+
+        // Ensure Stockfish is closed when the window is closed
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                game.closeStockfish();
+            }
+        });
 
         SwingUtilities.invokeLater(this::refreshBoard);
 
@@ -44,9 +62,47 @@ public class ChessGameGUI extends JFrame {
         setVisible(true);
     }
 
-    private void initializeBoard() {
-        for (int row = 0; row < squares.length; row++) {
-            for (int col = 0; col < squares[row].length; col++) {
+    private void initializeBoard(JPanel boardPanel) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+
+        // Add file labels (a-h) at the top
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 8; // Span across all files
+        gbc.anchor = GridBagConstraints.CENTER;
+        JPanel topLabelPanel = new JPanel(new GridLayout(1, 8));
+        for (char file = 'a'; file <= 'h'; file++) {
+            JLabel fileLabel = new JLabel(String.valueOf(file), SwingConstants.CENTER);
+            fileLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            topLabelPanel.add(fileLabel);
+        }
+        boardPanel.add(topLabelPanel, gbc);
+
+        // Add rank labels (1-8) on the left
+        gbc.gridwidth = 1; // Reset gridwidth
+        gbc.gridx = 0;
+        for (int rank = 8; rank >= 1; rank--) {
+            gbc.gridy = 8 - rank + 1; // Offset for top file labels
+            JLabel rankLabel = new JLabel(String.valueOf(rank), SwingConstants.CENTER);
+            rankLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            boardPanel.add(rankLabel, gbc);
+        }
+
+        // Add chess squares (8x8 grid)
+        for (int row = 0; row < 8; row++) {
+            // Add rank label on the right for each row
+            gbc.gridx = 9; // Right edge
+            gbc.gridy = row + 1; // Offset for top file labels
+            JLabel rightRankLabel = new JLabel(String.valueOf(8 - row), SwingConstants.CENTER);
+            rightRankLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            boardPanel.add(rightRankLabel, gbc);
+
+            for (int col = 0; col < 8; col++) {
+                gbc.gridx = col + 1; // Offset for left rank labels
+                gbc.gridy = row + 1; // Offset for top file labels
                 ChessSquareComponent square = new ChessSquareComponent(row, col);
                 int finalRow = row, finalCol = col;
 
@@ -57,11 +113,77 @@ public class ChessGameGUI extends JFrame {
                     }
                 });
 
-                add(square);
+                boardPanel.add(square, gbc);
                 squares[row][col] = square;
             }
         }
+
+        // Add file labels (a-h) at the bottom
+        gbc.gridx = 1;
+        gbc.gridy = 9; // Below the board
+        gbc.gridwidth = 8; // Span across all files
+        gbc.anchor = GridBagConstraints.CENTER;
+        JPanel bottomLabelPanel = new JPanel(new GridLayout(1, 8));
+        for (char file = 'a'; file <= 'h'; file++) {
+            JLabel fileLabel = new JLabel(String.valueOf(file), SwingConstants.CENTER);
+            fileLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            bottomLabelPanel.add(fileLabel);
+        }
+        boardPanel.add(bottomLabelPanel, gbc);
+
         refreshBoard();
+    }
+
+    @SuppressWarnings("unused")
+    private JPanel createSidePanel() {
+        JPanel sidePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // Add padding
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        // Title for the side panel
+        JLabel title = new JLabel("Opponent Selection");
+        title.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        sidePanel.add(title, gbc);
+
+        // Radio buttons for opponent selection
+        ButtonGroup group = new ButtonGroup();
+        JRadioButton humanOpponent = new JRadioButton("Human (Both Players)", !stockfishPlaysBlack);
+        JRadioButton stockfishOpponent = new JRadioButton("Stockfish (Black)", stockfishPlaysBlack);
+
+        group.add(humanOpponent);
+        group.add(stockfishOpponent);
+
+        // Action listener for radio buttons
+        ActionListener radioListener = e -> {
+            if (humanOpponent.isSelected()) {
+                stockfishPlaysBlack = false;
+                resetGame(); // Reset game if switching to human opponent
+            } else if (stockfishOpponent.isSelected()) {
+                stockfishPlaysBlack = true;
+                startStockfishVsHuman();
+            }
+        };
+
+        humanOpponent.addActionListener(radioListener);
+        stockfishOpponent.addActionListener(radioListener);
+
+        // Add radio buttons to the panel
+        gbc.gridy = 1;
+        sidePanel.add(humanOpponent, gbc);
+        gbc.gridy = 2;
+        sidePanel.add(stockfishOpponent, gbc);
+
+        // Optional: Add a reset button for the game
+        JButton resetButton = new JButton("Reset Game");
+        resetButton.addActionListener(e -> resetGame());
+        gbc.gridy = 3;
+        sidePanel.add(resetButton, gbc);
+
+        sidePanel.setPreferredSize(new Dimension(200, getHeight())); // Adjust width as needed
+        return sidePanel;
     }
 
     private void refreshBoard() {
@@ -89,10 +211,15 @@ public class ChessGameGUI extends JFrame {
             clearHighlights();
 
             if (moveResult) {
-                checkForPawnPromotion(row, col); // Check for pawn promotion
+                checkForPawnPromotion(row, col);
                 refreshBoard();
                 checkGameState();
                 checkGameOver();
+
+                // If Stockfish is playing as Black and it's Black's turn, let it move
+                if (stockfishPlaysBlack && game.getCurrentPlayerColor() == PieceColor.BLACK) {
+                    SwingUtilities.invokeLater(this::playStockfishMove);
+                }
             } else if (game.isPieceSelected()) {
                 highlightLegalMoves(new Position(row, col));
             }
@@ -137,7 +264,6 @@ public class ChessGameGUI extends JFrame {
         }
     }
 
-
     private void clearHighlights() {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -163,12 +289,6 @@ public class ChessGameGUI extends JFrame {
     @SuppressWarnings("unused")
     private void addMenuOptions() {
         JMenuBar menuBar = new JMenuBar();
-
-        JMenu gameMenu = new JMenu("Game");
-        JMenuItem resetItem = new JMenuItem("Reset");
-        resetItem.addActionListener(e -> resetGame());
-        gameMenu.add(resetItem);
-        menuBar.add(gameMenu);
 
         JMenu themesMenu = new JMenu("Themes");
         JMenuItem lightThemeItem = new JMenuItem("Light Theme");
@@ -198,7 +318,7 @@ public class ChessGameGUI extends JFrame {
         boardsMenu.add(greenBoard);
         menuBar.add(boardsMenu);
 
-        setJMenuBar(menuBar);
+        setJMenuBar(menuBar); // Ensure the menu bar is set to the frame
     }
 
     private void changeTheme(boolean dark) {
@@ -213,6 +333,7 @@ public class ChessGameGUI extends JFrame {
 
     private void resetGame() {
         game.resetGame();
+        stockfishPlaysBlack = false; // Reset to human vs human
         refreshBoard();
     }
 
@@ -224,6 +345,7 @@ public class ChessGameGUI extends JFrame {
             if (response == JOptionPane.YES_OPTION) {
                 resetGame();
             } else {
+                game.closeStockfish();
                 System.exit(0);
             }
         } else if (game.isStalemate(currentPlayer)) {
@@ -232,7 +354,6 @@ public class ChessGameGUI extends JFrame {
         }
     }
 
-    // Add pawn promotion dialog
     private void promotePawn(Pawn pawn) {
         String[] options = {"Queen", "Rook", "Bishop", "Knight"};
         String selectedOption = (String) JOptionPane.showInputDialog(this,
@@ -242,15 +363,13 @@ public class ChessGameGUI extends JFrame {
                 null,
                 options,
                 options[0]);
-    
+
         if (selectedOption != null) {
             int row = pawn.getPosition().getRow();
             int col = pawn.getPosition().getColumn();
-    
-            // Remove the pawn from the board
+
             game.getBoard().setPiece(row, col, null);
-    
-            // Create the promoted piece based on the user's selection
+
             Piece promotedPiece = null;
             switch (selectedOption) {
                 case "Queen":
@@ -266,15 +385,29 @@ public class ChessGameGUI extends JFrame {
                     promotedPiece = new Knight(pawn.getColor(), pawn.getPosition());
                     break;
             }
-    
-            // Place the promoted piece on the board
+
             if (promotedPiece != null) {
                 game.getBoard().setPiece(row, col, promotedPiece);
             }
-    
-            // Refresh the board to reflect the changes
+
             refreshBoard();
         }
+    }
+
+    // Start Stockfish playing as Black
+    private void startStockfishVsHuman() {
+        resetGame();
+        stockfishPlaysBlack = true;
+        JOptionPane.showMessageDialog(this, "Stockfish will play as Black. You start as White.");
+        refreshBoard();
+    }
+
+    // Play a move suggested by Stockfish
+    private void playStockfishMove() {
+        game.playStockfishMove();
+        refreshBoard();
+        checkGameState();
+        checkGameOver();
     }
 
     public static void main(String[] args) {

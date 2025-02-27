@@ -2,15 +2,67 @@ package com.chessgame;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 
 public class ChessGame {
     private ChessBoard board;
-    private boolean whiteTurn = true; // White starts the game
+    private boolean whiteTurn = true;
     private final List<String> moveHistory = new ArrayList<>();
-    private Position enPassantTarget; // Stores the en passant target square
+    private Position enPassantTarget;
+
+    // Stockfish integration
+    private Process stockfishProcess;
+    private BufferedReader stockfishInput;
+    private PrintWriter stockfishOutput;
+    private boolean isStockfishInitialized = false;
 
     public ChessGame() {
         this.board = new ChessBoard();
+        initializeStockfish(); // Initialize Stockfish at the start
+    }
+
+    // Initialize Stockfish engine
+    private void initializeStockfish() {
+        try {
+            String stockfishPath = "/opt/homebrew/bin/stockfish"; // Updated to your path
+            ProcessBuilder pb = new ProcessBuilder(stockfishPath);
+            stockfishProcess = pb.start();
+            stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
+            stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
+
+            // Set up UCI communication
+            stockfishOutput.println("uci");
+            String line;
+            while ((line = stockfishInput.readLine()) != null) {
+                if (line.equals("uciok")) break;
+            }
+            stockfishOutput.println("isready");
+            while ((line = stockfishInput.readLine()) != null) {
+                if (line.equals("readyok")) break;
+            }
+            isStockfishInitialized = true;
+        } catch (Exception e) {
+            System.err.println("Failed to initialize Stockfish: " + e.getMessage());
+            stockfishOutput = null;
+            isStockfishInitialized = false;
+        }
+    }
+
+    // Clean up Stockfish process when done
+    public void closeStockfish() {
+        if (stockfishOutput != null) {
+            stockfishOutput.println("quit");
+        }
+        if (stockfishProcess != null) {
+            try {
+                stockfishProcess.destroy();
+            } catch (Exception e) {
+                System.err.println("Error closing Stockfish: " + e.getMessage());
+            }
+        }
     }
 
     public ChessBoard getBoard() {
@@ -20,8 +72,16 @@ public class ChessGame {
     public void resetGame() {
         this.board = new ChessBoard();
         this.whiteTurn = true;
-        moveHistory.clear(); // Clear history on reset
-        enPassantTarget = null; // Reset en passant target
+        moveHistory.clear();
+        enPassantTarget = null;
+
+        // Safely handle Stockfish reset if initialized
+        if (stockfishOutput != null) {
+            stockfishOutput.println("ucinewgame");
+            stockfishOutput.println("position startpos");
+        } else {
+            System.err.println("Stockfish output is not initialized. Cannot reset Stockfish.");
+        }
     }
 
     public PieceColor getCurrentPlayerColor() {
@@ -50,11 +110,8 @@ public class ChessGame {
         return false;
     }
 
-    // Make this method public to allow access from ChessGameGUI or other classes
     public boolean isEnPassantMove(Position start, Position end, Piece movingPiece) {
-        // Check if the moving piece is a Pawn
         if (movingPiece instanceof Pawn && enPassantTarget != null) {
-            // En Passant is only possible if the target position matches the enPassantTarget
             boolean isEnPassant = end.equals(enPassantTarget) && Math.abs(start.getColumn() - end.getColumn()) == 1;
             System.out.println("Checking En Passant Move: " + isEnPassant);
             return isEnPassant;
@@ -68,10 +125,8 @@ public class ChessGame {
             return false;
         }
 
-        // Check if the move is an en passant move
         boolean isEnPassantMove = isEnPassantMove(start, end, movingPiece);
 
-        // First, validate the move, whether it's a regular move or en passant
         if (movingPiece.isValidMove(end, board.getBoard()) || isEnPassantMove) {
             if (isEnPassantMove) {
                 executeEnPassant(start, end);
@@ -79,33 +134,34 @@ public class ChessGame {
                 board.movePiece(start, end);
             }
 
-            // Handle pawn's two-square move for en passant
             if (movingPiece instanceof Pawn) {
                 if (Math.abs(start.getRow() - end.getRow()) == 2) {
-                    // Update the en passant target after two-square pawn advance
                     enPassantTarget = new Position(start.getRow() + (whiteTurn ? -1 : 1), start.getColumn());
-                    System.out.println("En Passant Target Set: " + enPassantTarget);
                 } else {
-                    enPassantTarget = null;  // Reset en passant if pawn moves only one square
+                    enPassantTarget = null;
                 }
             } else {
-                enPassantTarget = null; // Not a pawn, so reset en passant
+                enPassantTarget = null;
             }
 
             String moveNotation = generateMoveNotation(start, end);
             moveHistory.add(moveNotation);
             whiteTurn = !whiteTurn;
+
+            // Update Stockfish with the move only if stockfishOutput is initialized
+            if (stockfishOutput != null) {
+                stockfishOutput.println("position startpos moves " + String.join(" ", moveHistory));
+            }
             return true;
         }
         return false;
     }
 
     private void executeEnPassant(Position start, Position end) {
-        board.movePiece(start, end);  // Move the pawn to its final position
-        // Capture the opponent's pawn that was en passant
+        board.movePiece(start, end);
         int capturedPawnRow = start.getRow();
         int capturedPawnCol = end.getColumn();
-        board.setPiece(capturedPawnRow, capturedPawnCol, null); // Remove captured pawn
+        board.setPiece(capturedPawnRow, capturedPawnCol, null);
         System.out.println("En Passant Captured Pawn at: (" + capturedPawnRow + ", " + capturedPawnCol + ")");
     }
 
@@ -122,6 +178,42 @@ public class ChessGame {
         char endFile = (char) ('a' + end.getColumn());
         int endRank = 8 - end.getRow();
         return "" + startFile + startRank + endFile + endRank;
+    }
+
+    // Get Stockfish's best move
+    public String getStockfishMove() {
+        if (!isStockfishInitialized) {
+            System.err.println("Stockfish is not initialized. Cannot get Stockfish move.");
+            return null;
+        }
+
+        try {
+            stockfishOutput.println("go movetime 1000"); // Think for 1 second
+            String line;
+            while ((line = stockfishInput.readLine()) != null) {
+                if (line.startsWith("bestmove")) {
+                    return line.split(" ")[1]; // Extract the move (e.g., "e2e4")
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting Stockfish move: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // Play Stockfish's move
+    public void playStockfishMove() {
+        if (!isStockfishInitialized) {
+            System.err.println("Stockfish is not initialized. Cannot play Stockfish move.");
+            return;
+        }
+
+        String stockfishMove = getStockfishMove();
+        if (stockfishMove != null && stockfishMove.length() == 4) {
+            Position start = new Position(8 - (stockfishMove.charAt(1) - '0'), stockfishMove.charAt(0) - 'a');
+            Position end = new Position(8 - (stockfishMove.charAt(3) - '0'), stockfishMove.charAt(2) - 'a');
+            makeMove(start, end);
+        }
     }
 
     public boolean isInCheck(PieceColor kingColor) {
