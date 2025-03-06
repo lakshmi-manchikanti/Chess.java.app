@@ -44,10 +44,37 @@ public class ChessGame {
                 if (line.equals("readyok")) break;
             }
             isStockfishInitialized = true;
+
+            // Set default skill level (optional, could be set later via GUI)
+            setStockfishSkillLevel(10); // Default to level 10
         } catch (Exception e) {
             System.err.println("Failed to initialize Stockfish: " + e.getMessage());
             stockfishOutput = null;
             isStockfishInitialized = false;
+        }
+    }
+
+    // Set Stockfish skill level (0-20)
+    public void setStockfishSkillLevel(int level) {
+        if (stockfishOutput != null && isStockfishInitialized) {
+            if (level < 0 || level > 20) {
+                System.err.println("Invalid Stockfish skill level: " + level + ". Must be between 0 and 20.");
+                return;
+            }
+            stockfishOutput.println("setoption name Skill Level value " + level);
+            stockfishOutput.println("setoption name UCI_LimitStrength value true");
+            // Ensure Stockfish applies the new setting
+            stockfishOutput.println("isready");
+            try {
+                String line;
+                while ((line = stockfishInput.readLine()) != null) {
+                    if (line.equals("readyok")) break;
+                }
+            } catch (Exception e) {
+                System.err.println("Error confirming Stockfish readiness after setting skill level: " + e.getMessage());
+            }
+        } else {
+            System.err.println("Stockfish is not initialized. Cannot set skill level.");
         }
     }
 
