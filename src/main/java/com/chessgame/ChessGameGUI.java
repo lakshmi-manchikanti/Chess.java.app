@@ -45,6 +45,9 @@ public class ChessGameGUI extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
         add(createSidePanel(), BorderLayout.EAST);
 
+        //display next best move
+        //track past moves
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {

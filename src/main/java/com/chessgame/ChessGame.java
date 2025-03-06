@@ -14,6 +14,7 @@ public class ChessGame {
     private Position enPassantTarget;
 
     // Stockfish integration
+    // stockfishsearch.cpp
     private Process stockfishProcess;
     private BufferedReader stockfishInput;
     private PrintWriter stockfishOutput;
