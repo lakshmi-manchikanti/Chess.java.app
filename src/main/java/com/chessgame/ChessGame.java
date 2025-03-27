@@ -14,7 +14,6 @@ public class ChessGame {
     private Position enPassantTarget;
 
     // Stockfish integration
-    // stockfishsearch.cpp
     private Process stockfishProcess;
     private BufferedReader stockfishInput;
     private PrintWriter stockfishOutput;
@@ -22,19 +21,17 @@ public class ChessGame {
 
     public ChessGame() {
         this.board = new ChessBoard();
-        initializeStockfish(); // Initialize Stockfish at the start
+        initializeStockfish();
     }
 
-    // Initialize Stockfish engine
     private void initializeStockfish() {
         try {
-            String stockfishPath = "/opt/homebrew/bin/stockfish"; // Updated to your path
+            String stockfishPath = "/opt/homebrew/bin/stockfish";
             ProcessBuilder pb = new ProcessBuilder(stockfishPath);
             stockfishProcess = pb.start();
             stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
             stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
 
-            // Set up UCI communication
             stockfishOutput.println("uci");
             String line;
             while ((line = stockfishInput.readLine()) != null) {
@@ -46,8 +43,7 @@ public class ChessGame {
             }
             isStockfishInitialized = true;
 
-            // Set default skill level (optional, could be set later via GUI)
-            setStockfishSkillLevel(10); // Default to level 10
+            setStockfishSkillLevel(10);
         } catch (Exception e) {
             System.err.println("Failed to initialize Stockfish: " + e.getMessage());
             stockfishOutput = null;
@@ -55,7 +51,6 @@ public class ChessGame {
         }
     }
 
-    // Set Stockfish skill level (0-20)
     public void setStockfishSkillLevel(int level) {
         if (stockfishOutput != null && isStockfishInitialized) {
             if (level < 0 || level > 20) {
@@ -64,7 +59,6 @@ public class ChessGame {
             }
             stockfishOutput.println("setoption name Skill Level value " + level);
             stockfishOutput.println("setoption name UCI_LimitStrength value true");
-            // Ensure Stockfish applies the new setting
             stockfishOutput.println("isready");
             try {
                 String line;
@@ -79,7 +73,6 @@ public class ChessGame {
         }
     }
 
-    // Clean up Stockfish process when done
     public void closeStockfish() {
         if (stockfishOutput != null) {
             stockfishOutput.println("quit");
@@ -103,7 +96,6 @@ public class ChessGame {
         moveHistory.clear();
         enPassantTarget = null;
 
-        // Safely handle Stockfish reset if initialized
         if (stockfishOutput != null) {
             stockfishOutput.println("ucinewgame");
             stockfishOutput.println("position startpos");
@@ -176,7 +168,6 @@ public class ChessGame {
             moveHistory.add(moveNotation);
             whiteTurn = !whiteTurn;
 
-            // Update Stockfish with the move only if stockfishOutput is initialized
             if (stockfishOutput != null) {
                 stockfishOutput.println("position startpos moves " + String.join(" ", moveHistory));
             }
@@ -208,7 +199,6 @@ public class ChessGame {
         return "" + startFile + startRank + endFile + endRank;
     }
 
-    // Get Stockfish's best move
     public String getStockfishMove() {
         if (!isStockfishInitialized) {
             System.err.println("Stockfish is not initialized. Cannot get Stockfish move.");
@@ -216,11 +206,11 @@ public class ChessGame {
         }
 
         try {
-            stockfishOutput.println("go movetime 1000"); // Think for 1 second
+            stockfishOutput.println("go movetime 1000");
             String line;
             while ((line = stockfishInput.readLine()) != null) {
                 if (line.startsWith("bestmove")) {
-                    return line.split(" ")[1]; // Extract the move (e.g., "e2e4")
+                    return line.split(" ")[1];
                 }
             }
         } catch (Exception e) {
@@ -229,7 +219,6 @@ public class ChessGame {
         return null;
     }
 
-    // Play Stockfish's move
     public void playStockfishMove() {
         if (!isStockfishInitialized) {
             System.err.println("Stockfish is not initialized. Cannot play Stockfish move.");
@@ -319,14 +308,12 @@ public class ChessGame {
         if (selectedPiece == null) {
             return new ArrayList<>();
         }
-    
+
         List<Position> legalMoves = new ArrayList<>();
-    
-        // If the piece is a Pawn, use specific pawn logic
+
         if (selectedPiece instanceof Pawn) {
             addPawnMoves(position, selectedPiece.getColor(), legalMoves);
         } else {
-            // For all other pieces, use their general isValidMove method
             for (int row = 0; row < board.getBoard().length; row++) {
                 for (int col = 0; col < board.getBoard()[row].length; col++) {
                     Position newPos = new Position(row, col);
@@ -346,7 +333,6 @@ public class ChessGame {
             legalMoves.add(newPos);
         }
 
-        // Handle two-square advance
         if ((color == PieceColor.WHITE && position.getRow() == 6) ||
                 (color == PieceColor.BLACK && position.getRow() == 1)) {
             newPos = new Position(position.getRow() + 2 * direction, position.getColumn());
@@ -357,15 +343,14 @@ public class ChessGame {
             }
         }
 
-        // Add capture moves and en passant
         for (int colOffset : new int[]{-1, 1}) {
             Position capturePos = new Position(position.getRow() + direction, position.getColumn() + colOffset);
             if (isPositionOnBoard(capturePos)) {
                 Piece capturePiece = board.getPiece(capturePos.getRow(), capturePos.getColumn());
                 if (capturePiece != null && capturePiece.getColor() != color) {
-                    legalMoves.add(capturePos);  // Regular capture
+                    legalMoves.add(capturePos);
                 } else if (capturePos.equals(enPassantTarget)) {
-                    legalMoves.add(capturePos);  // En passant capture
+                    legalMoves.add(capturePos);
                 }
             }
         }
@@ -373,53 +358,51 @@ public class ChessGame {
 
     public boolean isCastlingMove(Position start, Position end) {
         Piece movingPiece = board.getPiece(start.getRow(), start.getColumn());
-        
+
         if (!(movingPiece instanceof King)) {
             return false;
         }
-    
+
         King king = (King) movingPiece;
         if (king.hasMoved()) {
             return false;
         }
-    
+
         int row = start.getRow();
         int colDiff = end.getColumn() - start.getColumn();
-    
+
         if (Math.abs(colDiff) != 2) {
             return false;
         }
-    
+
         int rookCol = (colDiff > 0) ? 7 : 0;
         Piece rook = board.getPiece(row, rookCol);
-    
+
         if (!(rook instanceof Rook) || ((Rook) rook).hasMoved()) {
             return false;
         }
-    
-        // Ensure the squares between king and rook are empty
+
         int step = (colDiff > 0) ? 1 : -1;
         for (int col = start.getColumn() + step; col != rookCol; col += step) {
             if (board.getPiece(row, col) != null) {
                 return false;
             }
         }
-    
-        // Ensure the king does not move through or into check
+
         Position middlePosition = new Position(row, start.getColumn() + step);
         if (isInCheck(king.getColor()) || wouldBeInCheckAfterMove(king.getColor(), start, middlePosition) ||
             wouldBeInCheckAfterMove(king.getColor(), start, end)) {
             return false;
         }
-    
+
         return true;
     }
-    
+
     public boolean isStalemate(PieceColor kingColor) {
         if (isInCheck(kingColor)) {
             return false;
         }
-    
+
         for (int row = 0; row < board.getBoard().length; row++) {
             for (int col = 0; col < board.getBoard()[row].length; col++) {
                 Piece piece = board.getPiece(row, col);
@@ -432,7 +415,7 @@ public class ChessGame {
                 }
             }
         }
-        
+
         return true;
     }
 }

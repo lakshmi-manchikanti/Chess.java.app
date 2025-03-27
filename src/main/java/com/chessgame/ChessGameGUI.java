@@ -45,9 +45,6 @@ public class ChessGameGUI extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
         add(createSidePanel(), BorderLayout.EAST);
 
-        //display next best move
-        //track past moves
-
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -127,7 +124,7 @@ public class ChessGameGUI extends JFrame {
             fileLabel.setFont(new Font("Arial", Font.BOLD, 12));
             bottomLabelPanel.add(fileLabel);
         }
-        boardPanel.add(bottomLabelPanel, gbc);  // Fixed to bottomLabelPanel
+        boardPanel.add(bottomLabelPanel, gbc);
 
         refreshBoard();
     }
@@ -138,6 +135,7 @@ public class ChessGameGUI extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Allow components to stretch horizontally
 
         JLabel title = new JLabel("Opponent Selection");
         title.setFont(new Font("Arial", Font.BOLD, 14));
@@ -176,6 +174,7 @@ public class ChessGameGUI extends JFrame {
 
         gbc.gridy = 3;
         skillLevelLabel = new JLabel("Stockfish Level: " + stockfishSkillLevel);
+        skillLevelLabel.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
         sidePanel.add(skillLevelLabel, gbc);
 
         gbc.gridy = 4;
@@ -186,23 +185,32 @@ public class ChessGameGUI extends JFrame {
         stockfishLevelSlider.setPaintLabels(true);
         stockfishLevelSlider.setEnabled(stockfishPlaysBlack);
 
-        stockfishLevelSlider.setPreferredSize(new Dimension(180, 50)); // Increase width and height
-        stockfishLevelSlider.setFont(new Font("Arial", Font.PLAIN, 12));
-        
+        // Increase the size of the slider
+        stockfishLevelSlider.setPreferredSize(new Dimension(250, 80)); // Increased width and height
+        stockfishLevelSlider.setFont(new Font("Arial", Font.PLAIN, 14)); // Larger font for labels
+
         stockfishLevelSlider.addChangeListener(e -> {
             stockfishSkillLevel = stockfishLevelSlider.getValue();
             skillLevelLabel.setText("Stockfish Level: " + stockfishSkillLevel);
             game.setStockfishSkillLevel(stockfishSkillLevel);
         });
-        
+
         sidePanel.add(stockfishLevelSlider, gbc);
 
-        JButton resetButton = new JButton("Reset Game");
-        resetButton.addActionListener(e -> resetGame());
+        // Add a button to show Stockfish's best move
+        JButton bestMoveButton = new JButton("Show Stockfish Best Move");
+        bestMoveButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
+        bestMoveButton.addActionListener(e -> showStockfishBestMove());
         gbc.gridy = 5;
+        sidePanel.add(bestMoveButton, gbc);
+
+        JButton resetButton = new JButton("Reset Game");
+        resetButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
+        resetButton.addActionListener(e -> resetGame());
+        gbc.gridy = 6;
         sidePanel.add(resetButton, gbc);
 
-        sidePanel.setPreferredSize(new Dimension(200, getHeight()));
+        sidePanel.setPreferredSize(new Dimension(300, getHeight())); // Increase side panel width to accommodate larger slider
         return sidePanel;
     }
 
@@ -235,6 +243,11 @@ public class ChessGameGUI extends JFrame {
                 refreshBoard();
                 checkGameState();
                 checkGameOver();
+
+                // Show Stockfish's best move if it's White's turn and Stockfish plays Black
+                if (stockfishPlaysBlack && game.getCurrentPlayerColor() == PieceColor.WHITE) {
+                    SwingUtilities.invokeLater(this::showStockfishBestMove);
+                }
 
                 if (stockfishPlaysBlack && game.getCurrentPlayerColor() == PieceColor.BLACK) {
                     SwingUtilities.invokeLater(this::playStockfishMove);
@@ -428,6 +441,25 @@ public class ChessGameGUI extends JFrame {
         refreshBoard();
         checkGameState();
         checkGameOver();
+    }
+
+    private void showStockfishBestMove() {
+        // Clear any previous highlights
+        clearHighlights();
+
+        // Get Stockfish's best move
+        String stockfishMove = game.getStockfishMove();
+        if (stockfishMove != null && stockfishMove.length() == 4) {
+            // Parse the move (e.g., "e2e4")
+            Position start = new Position(8 - (stockfishMove.charAt(1) - '0'), stockfishMove.charAt(0) - 'a');
+            Position end = new Position(8 - (stockfishMove.charAt(3) - '0'), stockfishMove.charAt(2) - 'a');
+
+            // Highlight the start and end positions with a distinct color (e.g., yellow)
+            squares[start.getRow()][start.getColumn()].setBackground(Color.YELLOW);
+            squares[end.getRow()][end.getColumn()].setBackground(Color.YELLOW);
+        } else {
+            JOptionPane.showMessageDialog(this, "Unable to retrieve Stockfish's best move.");
+        }
     }
 
     public static void main(String[] args) {
