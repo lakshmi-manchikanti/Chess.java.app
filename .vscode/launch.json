@@ -10,26 +10,6 @@
             "request": "launch",
             "mainClass": "com.chessgame.ChessGameGUI",
             "projectName": "New Folder_6e5a71c0"
-        },
-        {
-            "type": "java",
-            "name": "ChessGameGUI",
-            "request": "launch",
-            "mainClass": "com.chessgame.ChessGameGUI",
-            "projectName": "6th-period-isp-cdl_9e88ebd"
-        },
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}"
-        },
-        {
-            "type": "java",
-            "name": "HelloWorld",
-            "request": "launch",
-            "mainClass": "com.chessgame.HelloWorld",
-            "projectName": "6th-period-isp-cdl_9e88ebd"
         }
     ]
 }
