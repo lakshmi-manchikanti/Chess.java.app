@@ -35,7 +35,7 @@ public class ChessGameGUI extends JFrame {
             e.printStackTrace();
         }
 
-        setTitle("Chess Game with Stockfish");
+        setTitle("Chess.java");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
