@@ -3,6 +3,8 @@ package com.chessgame;
 import java.util.List;
 import java.util.ArrayList;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -25,30 +27,42 @@ public class ChessGame {
     }
 
     private void initializeStockfish() {
-        try {
-            String stockfishPath = "src/main/resources/stockfish/stockfish-macos";
-            ProcessBuilder pb = new ProcessBuilder(stockfishPath);
-            stockfishProcess = pb.start();
-            stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
-            stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
+    try {
+        // Get the base directory of the running application
+        String appDir = System.getProperty("user.dir"); // Points to Contents/MacOS/
+        // Navigate to the Stockfish executable in Contents/app/classes/stockfish/
+        String stockfishPath = appDir + "/../app/classes/stockfish/stockfish-macos";
 
-            stockfishOutput.println("uci");
-            String line;
-            while ((line = stockfishInput.readLine()) != null) {
-                if (line.equals("uciok")) break;
-            }
-            stockfishOutput.println("isready");
-            while ((line = stockfishInput.readLine()) != null) {
-                if (line.equals("readyok")) break;
-            }
-            isStockfishInitialized = true;
-
-            setStockfishSkillLevel(10);
-        } catch (Exception e) {
-            System.err.println("Failed to initialize Stockfish: " + e.getMessage());
-            stockfishOutput = null;
-            isStockfishInitialized = false;
+        // Ensure the Stockfish file exists and is executable
+        File stockfishFile = new File(stockfishPath);
+        if (!stockfishFile.exists()) {
+            throw new FileNotFoundException("Stockfish executable not found at: " + stockfishPath);
         }
+        stockfishFile.setExecutable(true); // Ensure it’s executable
+
+        ProcessBuilder pb = new ProcessBuilder(stockfishPath);
+        stockfishProcess = pb.start();
+        stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
+        stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
+
+        stockfishOutput.println("uci");
+        String line;
+        while ((line = stockfishInput.readLine()) != null) {
+            if (line.equals("uciok")) break;
+        }
+        stockfishOutput.println("isready");
+        while ((line = stockfishInput.readLine()) != null) {
+            if (line.equals("readyok")) break;
+        }
+        isStockfishInitialized = true;
+
+        setStockfishSkillLevel(10);
+    } catch (Exception e) {
+        System.err.println("Failed to initialize Stockfish: " + e.getMessage());
+        e.printStackTrace(); // Add stack trace for debugging
+        stockfishOutput = null;
+        isStockfishInitialized = false;
+    }
     }
 
     public void setStockfishSkillLevel(int level) {
