@@ -26,7 +26,7 @@ public class ChessGame {
 
     private void initializeStockfish() {
         try {
-            String stockfishPath = "/opt/homebrew/bin/stockfish";
+            String stockfishPath = "src/main/resources/stockfish/stockfish-macos";
             ProcessBuilder pb = new ProcessBuilder(stockfishPath);
             stockfishProcess = pb.start();
             stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
