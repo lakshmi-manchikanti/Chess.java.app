@@ -5,13 +5,12 @@ import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
 public class ChessGame {
     private ChessBoard board;
@@ -30,59 +29,66 @@ public class ChessGame {
         initializeStockfish();
     }
 
-    @SuppressWarnings("resource")
-    public void initializeStockfish() {
-    try {
-        // Define the resource path to Stockfish for macOS
-        String stockfishResourcePath = "/stockfish/stockfish-macos";
-
-        // Get the resource as an InputStream
-        InputStream stockfishStream = this.getClass().getResourceAsStream(stockfishResourcePath);
-        if (stockfishStream == null) {
-            throw new FileNotFoundException("Could not find Stockfish binary in resources: " + stockfishResourcePath);
+    private void initializeStockfish() {
+        try {
+            String resourcePath = "/stockfish/stockfish-macos"; // resource path inside src/main/resources
+    
+            // Load the binary from the classpath and copy it to a temp file
+            File tempStockfish = File.createTempFile("stockfish", null);
+            tempStockfish.deleteOnExit();
+    
+            try (
+                InputStream is = getClass().getResourceAsStream(resourcePath);
+                FileOutputStream os = new FileOutputStream(tempStockfish)
+            ) {
+                if (is == null) {
+                    throw new FileNotFoundException("Could not find Stockfish binary in resources: " + resourcePath);
+                }
+    
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
+                }
+            }
+    
+            // Make the temp file executable
+            if (!tempStockfish.setExecutable(true)) {
+                throw new IOException("Failed to make Stockfish executable");
+            }
+    
+            // Start the Stockfish process
+            ProcessBuilder pb = new ProcessBuilder(tempStockfish.getAbsolutePath());
+            stockfishProcess = pb.start();
+            stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
+            stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
+    
+            // UCI protocol handshake
+            stockfishOutput.println("uci");
+            waitForLine("uciok");
+    
+            stockfishOutput.println("isready");
+            waitForLine("readyok");
+    
+            isStockfishInitialized = true;
+            setStockfishSkillLevel(10);
+    
+        } catch (Exception e) {
+            System.err.println("Failed to initialize Stockfish:");
+            e.printStackTrace();
+            stockfishOutput = null;
+            stockfishInput = null;
+            stockfishProcess = null;
+            isStockfishInitialized = false;
         }
-
-        // Create a temporary file for macOS
-        File tempStockfish = File.createTempFile("stockfish-macos", "");
-        tempStockfish.deleteOnExit();
-
-        // Copy the resource to the temporary file
-        Files.copy(stockfishStream, tempStockfish.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        stockfishStream.close();
-
-        // Make the file executable (required for macOS)
-        if (!tempStockfish.setExecutable(true)) {
-            throw new IOException("Failed to make Stockfish executable");
-        }
-
-        // Start the Stockfish process
-        ProcessBuilder pb = new ProcessBuilder(tempStockfish.getAbsolutePath());
-        this.stockfishProcess = pb.start();
-        this.stockfishInput = new BufferedReader(new InputStreamReader(this.stockfishProcess.getInputStream()));
-        this.stockfishOutput = new PrintWriter(new OutputStreamWriter(this.stockfishProcess.getOutputStream()), true);
-
-        // Initialize Stockfish with UCI commands
-        this.stockfishOutput.println("uci");
-        String line;
-        while ((line = this.stockfishInput.readLine()) != null && !line.equals("uciok")) {
-            // Wait for uciok
-        }
-
-        this.stockfishOutput.println("isready");
-        while ((line = this.stockfishInput.readLine()) != null && !line.equals("readyok")) {
-            // Wait for readyok
-        }
-
-        this.isStockfishInitialized = true;
-        this.setStockfishSkillLevel(10);
-    } catch (Exception e) {
-        System.err.println("Failed to initialize Stockfish:");
-        e.printStackTrace();
-        this.stockfishOutput = null;
-        this.stockfishInput = null;
-        this.stockfishProcess = null;
-        this.isStockfishInitialized = false;
     }
+    
+    private void waitForLine(String expected) throws IOException {
+        String line;
+        while ((line = stockfishInput.readLine()) != null) {
+            System.out.println("SF >> " + line); // optional logging
+            if (line.trim().equals(expected)) break;
+        }
     }
 
     public void setStockfishSkillLevel(int level) {
