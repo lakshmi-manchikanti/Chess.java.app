@@ -19,5 +19,3 @@ Development of this extension will be coded in Java and HTML and CSS.
 # Release Notes 10/21/24
 - We began the planning for our project. We created a github and did research on chess models. We also assigned roles.
 
-# Attributes
-Chess icon created by Freepik - Flaticon
