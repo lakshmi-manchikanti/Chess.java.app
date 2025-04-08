@@ -44,18 +44,6 @@ public class Pawn extends Piece {
             return true;
         }
 
-        // En passant capture
-        if (Math.abs(colDiff) == 1 && rowDiff == 1) {
-            Position adjacentPosition = new Position(position.getRow(), newPosition.getColumn());
-            Piece adjacentPiece = board[adjacentPosition.getRow()][adjacentPosition.getColumn()];
-            if (adjacentPiece instanceof Pawn) {
-                Pawn adjacentPawn = (Pawn) adjacentPiece;
-                if (adjacentPawn.color != this.color && adjacentPawn.hasJustMovedTwoSquares()) {
-                    return true;
-                }
-            }
-        }
-
         return false;
     }
     

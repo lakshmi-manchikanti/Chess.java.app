@@ -4,10 +4,9 @@ import javax.swing.*;
 
 public class ChessBoard {
     private Piece[][] board;
-    private Position lastDoubleStepPawn = null; // Track last double-step pawn move
 
     public ChessBoard() {
-        this.board = new Piece[8][8]; // Chessboard is 8x8
+        this.board = new Piece[8][8];
         setupPieces();
     }
 
@@ -56,9 +55,10 @@ public class ChessBoard {
         return (row == 0 || row == 1) ? PieceColor.BLACK : PieceColor.WHITE;
     }
 
-    public void movePiece(Position start, Position end) {
+    public void movePiece(Position start, Position end, boolean isEnPassantMove) {
         Piece movingPiece = board[start.getRow()][start.getColumn()];
-        if (movingPiece == null || !movingPiece.isValidMove(end, board)) return;
+        if (movingPiece == null) return;
+        if (!isEnPassantMove && !movingPiece.isValidMove(end, board)) return;
 
         // Handle Castling
         if (movingPiece instanceof King && Math.abs(start.getColumn() - end.getColumn()) == 2) {
@@ -66,32 +66,22 @@ public class ChessBoard {
         }
 
         if (movingPiece instanceof Pawn) {
-            // Handle en passant capture
-            if (lastDoubleStepPawn != null) {
-                if (Math.abs(start.getColumn() - end.getColumn()) == 1 && start.getRow() == lastDoubleStepPawn.getRow()) {
-                    int capturedPawnRow = start.getRow();
-                    board[capturedPawnRow][lastDoubleStepPawn.getColumn()] = null;
-                }
-            }
-
-            // Track new double-step pawn move
-            lastDoubleStepPawn = (Math.abs(start.getRow() - end.getRow()) == 2) ? end : null;
-
-            // Handle pawn promotion (if pawn reaches promotion rank)
+            // Handle pawn promotion
             if ((movingPiece.getColor() == PieceColor.WHITE && end.getRow() == 0) ||
                 (movingPiece.getColor() == PieceColor.BLACK && end.getRow() == 7)) {
                 promotePawn((Pawn) movingPiece, end);
                 board[start.getRow()][start.getColumn()] = null;
-                return; // Exit the method after promotion
+                return;
             }
-        } 
-        else {
-            lastDoubleStepPawn = null;
         }
 
         // Move the piece
         board[end.getRow()][end.getColumn()] = movingPiece;
-        movingPiece.setPosition(end);
+        if (movingPiece instanceof Pawn) {
+            ((Pawn) movingPiece).move(end);
+        } else {
+            movingPiece.setPosition(end);
+        }
         board[start.getRow()][start.getColumn()] = null;
 
         // Update moved status
@@ -112,16 +102,13 @@ public class ChessBoard {
 
         Piece rook = board[row][rookCol];
         if (rook instanceof Rook && !((Rook) rook).hasMoved()) {
-            // Move the rook
             board[row][newRookCol] = rook;
             rook.setPosition(new Position(row, newRookCol));
             board[row][rookCol] = null;
         }
     }
 
-    // Promote a pawn when it reaches the promotion rank (0 for black, 7 for white)
     private void promotePawn(Pawn pawn, Position position) {
-        // Prompt user to select a piece for promotion (via a GUI dialog)
         String[] options = {"Queen", "Rook", "Bishop", "Knight"};
         String selectedOption = (String) JOptionPane.showInputDialog(null,
                 "Choose a piece to promote your pawn to:",
@@ -147,7 +134,6 @@ public class ChessBoard {
                     promotedPiece = new Knight(pawn.getColor(), position);
                     break;
             } 
-            // Replace the pawn with the newly promoted piece
             board[position.getRow()][position.getColumn()] = promotedPiece;
         }
     }

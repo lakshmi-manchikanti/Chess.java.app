@@ -16,9 +16,6 @@ public class ChessGame {
     private ChessBoard board;
     private boolean whiteTurn = true;
     private final List<String> moveHistory = new ArrayList<>();
-    private Position enPassantTarget;
-
-    // Stockfish integration
     private Process stockfishProcess;
     private BufferedReader stockfishInput;
     private PrintWriter stockfishOutput;
@@ -31,9 +28,7 @@ public class ChessGame {
 
     private void initializeStockfish() {
         try {
-            String resourcePath = "/stockfish/stockfish-macos"; // resource path inside src/main/resources
-    
-            // Load the binary from the classpath and copy it to a temp file
+            String resourcePath = "/stockfish/stockfish-macos";
             File tempStockfish = File.createTempFile("stockfish", null);
             tempStockfish.deleteOnExit();
     
@@ -44,7 +39,6 @@ public class ChessGame {
                 if (is == null) {
                     throw new FileNotFoundException("Could not find Stockfish binary in resources: " + resourcePath);
                 }
-    
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 while ((bytesRead = is.read(buffer)) != -1) {
@@ -52,18 +46,15 @@ public class ChessGame {
                 }
             }
     
-            // Make the temp file executable
             if (!tempStockfish.setExecutable(true)) {
                 throw new IOException("Failed to make Stockfish executable");
             }
     
-            // Start the Stockfish process
             ProcessBuilder pb = new ProcessBuilder(tempStockfish.getAbsolutePath());
             stockfishProcess = pb.start();
             stockfishInput = new BufferedReader(new InputStreamReader(stockfishProcess.getInputStream()));
             stockfishOutput = new PrintWriter(new OutputStreamWriter(stockfishProcess.getOutputStream()), true);
     
-            // UCI protocol handshake
             stockfishOutput.println("uci");
             waitForLine("uciok");
     
@@ -86,7 +77,6 @@ public class ChessGame {
     private void waitForLine(String expected) throws IOException {
         String line;
         while ((line = stockfishInput.readLine()) != null) {
-            System.out.println("SF >> " + line); // optional logging
             if (line.trim().equals(expected)) break;
         }
     }
@@ -134,7 +124,6 @@ public class ChessGame {
         this.board = new ChessBoard();
         this.whiteTurn = true;
         moveHistory.clear();
-        enPassantTarget = null;
 
         if (stockfishOutput != null) {
             stockfishOutput.println("ucinewgame");
@@ -171,10 +160,20 @@ public class ChessGame {
     }
 
     public boolean isEnPassantMove(Position start, Position end, Piece movingPiece) {
-        if (movingPiece instanceof Pawn && enPassantTarget != null) {
-            boolean isEnPassant = end.equals(enPassantTarget) && Math.abs(start.getColumn() - end.getColumn()) == 1;
-            System.out.println("Checking En Passant Move: " + isEnPassant);
-            return isEnPassant;
+        if (movingPiece instanceof Pawn) {
+            int direction = movingPiece.getColor() == PieceColor.WHITE ? -1 : 1;
+            int colDiff = Math.abs(start.getColumn() - end.getColumn());
+            int rowDiff = (end.getRow() - start.getRow()) * direction;
+
+            if (rowDiff == 1 && colDiff == 1) {
+                Position adjacentPosition = new Position(start.getRow(), end.getColumn());
+                Piece adjacentPiece = board.getPiece(adjacentPosition.getRow(), adjacentPosition.getColumn());
+                if (adjacentPiece instanceof Pawn) {
+                    Pawn adjacentPawn = (Pawn) adjacentPiece;
+                    return adjacentPawn.getColor() != movingPiece.getColor() &&
+                           adjacentPawn.hasJustMovedTwoSquares();
+                }
+            }
         }
         return false;
     }
@@ -191,18 +190,10 @@ public class ChessGame {
             if (isEnPassantMove) {
                 executeEnPassant(start, end);
             } else {
-                board.movePiece(start, end);
+                board.movePiece(start, end, false);
             }
 
-            if (movingPiece instanceof Pawn) {
-                if (Math.abs(start.getRow() - end.getRow()) == 2) {
-                    enPassantTarget = new Position(start.getRow() + (whiteTurn ? -1 : 1), start.getColumn());
-                } else {
-                    enPassantTarget = null;
-                }
-            } else {
-                enPassantTarget = null;
-            }
+            resetJustMovedTwoSquaresForPawns(movingPiece);
 
             String moveNotation = generateMoveNotation(start, end);
             moveHistory.add(moveNotation);
@@ -216,12 +207,22 @@ public class ChessGame {
         return false;
     }
 
+    private void resetJustMovedTwoSquaresForPawns(Piece movingPiece) {
+        for (int row = 0; row < board.getBoard().length; row++) {
+            for (int col = 0; col < board.getBoard()[row].length; col++) {
+                Piece piece = board.getPiece(row, col);
+                if (piece instanceof Pawn && piece != movingPiece) {
+                    ((Pawn) piece).setJustMovedTwoSquares(false);
+                }
+            }
+        }
+    }
+
     private void executeEnPassant(Position start, Position end) {
-        board.movePiece(start, end);
+        board.movePiece(start, end, true);
         int capturedPawnRow = start.getRow();
         int capturedPawnCol = end.getColumn();
         board.setPiece(capturedPawnRow, capturedPawnCol, null);
-        System.out.println("En Passant Captured Pawn at: (" + capturedPawnRow + ", " + capturedPawnCol + ")");
     }
 
     public String getLastMove() {
@@ -389,7 +390,7 @@ public class ChessGame {
                 Piece capturePiece = board.getPiece(capturePos.getRow(), capturePos.getColumn());
                 if (capturePiece != null && capturePiece.getColor() != color) {
                     legalMoves.add(capturePos);
-                } else if (capturePos.equals(enPassantTarget)) {
+                } else if (isEnPassantMove(position, capturePos, board.getPiece(position.getRow(), position.getColumn()))) {
                     legalMoves.add(capturePos);
                 }
             }
