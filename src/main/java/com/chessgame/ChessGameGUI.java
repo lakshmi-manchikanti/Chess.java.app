@@ -23,7 +23,7 @@ public class ChessGameGUI extends JFrame {
 
     private boolean isDarkTheme = false;
     private String boardStyle = "Wood"; // Default board style
-    private boolean stockfishPlaysBlack = false; // Toggle for Stockfish playing as Black
+    private PieceColor stockfishColor = null; // null means human vs. human, otherwise WHITE or BLACK
     private JSlider stockfishLevelSlider;
     private JLabel skillLevelLabel;
     private int stockfishSkillLevel = 10; // Default skill level (0-20)
@@ -135,7 +135,7 @@ public class ChessGameGUI extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Allow components to stretch horizontally
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JLabel title = new JLabel("Opponent Selection");
         title.setFont(new Font("Arial", Font.BOLD, 14));
@@ -143,38 +143,27 @@ public class ChessGameGUI extends JFrame {
         gbc.gridy = 0;
         sidePanel.add(title, gbc);
 
-        ButtonGroup group = new ButtonGroup();
-        JRadioButton humanOpponent = new JRadioButton("Human (Both Players)", !stockfishPlaysBlack);
-        JRadioButton stockfishOpponent = new JRadioButton("Stockfish (Black)", stockfishPlaysBlack);
-
-        group.add(humanOpponent);
-        group.add(stockfishOpponent);
-
-        ActionListener radioListener = e -> {
-            if (humanOpponent.isSelected()) {
-                stockfishPlaysBlack = false;
-                resetGame();
-                stockfishLevelSlider.setEnabled(false);
-                skillLevelLabel.setEnabled(false);
-            } else if (stockfishOpponent.isSelected()) {
-                stockfishPlaysBlack = true;
-                stockfishLevelSlider.setEnabled(true);
-                skillLevelLabel.setEnabled(true);
-                startStockfishVsHuman();
-            }
-        };
-
-        humanOpponent.addActionListener(radioListener);
-        stockfishOpponent.addActionListener(radioListener);
-
+        JButton humanVsHumanButton = new JButton("Human vs. Human");
+        humanVsHumanButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        humanVsHumanButton.addActionListener(e -> {
+            stockfishColor = null;
+            stockfishLevelSlider.setEnabled(false);
+            skillLevelLabel.setEnabled(false);
+            resetGame();
+        });
         gbc.gridy = 1;
-        sidePanel.add(humanOpponent, gbc);
+        sidePanel.add(humanVsHumanButton, gbc);
+
+        JButton playStockfishButton = new JButton("Play Stockfish");
+        playStockfishButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        playStockfishButton.addActionListener(e -> showStockfishColorDialog());
         gbc.gridy = 2;
-        sidePanel.add(stockfishOpponent, gbc);
+        sidePanel.add(playStockfishButton, gbc);
 
         gbc.gridy = 3;
         skillLevelLabel = new JLabel("Stockfish Level: " + stockfishSkillLevel);
-        skillLevelLabel.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
+        skillLevelLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        skillLevelLabel.setEnabled(stockfishColor != null);
         sidePanel.add(skillLevelLabel, gbc);
 
         gbc.gridy = 4;
@@ -183,35 +172,67 @@ public class ChessGameGUI extends JFrame {
         stockfishLevelSlider.setMinorTickSpacing(1);
         stockfishLevelSlider.setPaintTicks(true);
         stockfishLevelSlider.setPaintLabels(true);
-        stockfishLevelSlider.setEnabled(stockfishPlaysBlack);
-
-        // Increase the size of the slider
-        stockfishLevelSlider.setPreferredSize(new Dimension(250, 80)); // Increased width and height
-        stockfishLevelSlider.setFont(new Font("Arial", Font.PLAIN, 14)); // Larger font for labels
-
+        stockfishLevelSlider.setEnabled(stockfishColor != null);
+        stockfishLevelSlider.setPreferredSize(new Dimension(250, 80));
+        stockfishLevelSlider.setFont(new Font("Arial", Font.PLAIN, 14));
         stockfishLevelSlider.addChangeListener(e -> {
             stockfishSkillLevel = stockfishLevelSlider.getValue();
             skillLevelLabel.setText("Stockfish Level: " + stockfishSkillLevel);
             game.setStockfishSkillLevel(stockfishSkillLevel);
         });
-
         sidePanel.add(stockfishLevelSlider, gbc);
 
-        // Add a button to show Stockfish's best move
         JButton bestMoveButton = new JButton("Show Stockfish Best Move");
-        bestMoveButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
+        bestMoveButton.setFont(new Font("Arial", Font.PLAIN, 14));
         bestMoveButton.addActionListener(e -> showStockfishBestMove());
         gbc.gridy = 5;
         sidePanel.add(bestMoveButton, gbc);
 
         JButton resetButton = new JButton("Reset Game");
-        resetButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Increase font size for readability
+        resetButton.setFont(new Font("Arial", Font.PLAIN, 14));
         resetButton.addActionListener(e -> resetGame());
         gbc.gridy = 6;
         sidePanel.add(resetButton, gbc);
 
-        sidePanel.setPreferredSize(new Dimension(300, getHeight())); // Increase side panel width to accommodate larger slider
+        sidePanel.setPreferredSize(new Dimension(300, getHeight()));
         return sidePanel;
+    }
+
+    @SuppressWarnings("unused")
+    private void showStockfishColorDialog() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 10));
+        JButton whiteButton = new JButton("Stockfish as White");
+        JButton blackButton = new JButton("Stockfish as Black");
+
+        whiteButton.addActionListener(e -> {
+            stockfishColor = PieceColor.WHITE;
+            stockfishLevelSlider.setEnabled(true);
+            skillLevelLabel.setEnabled(true);
+            startStockfishVsHuman();
+            JOptionPane.getRootFrame().dispose(); // Close dialog
+        });
+
+        blackButton.addActionListener(e -> {
+            stockfishColor = PieceColor.BLACK;
+            stockfishLevelSlider.setEnabled(true);
+            skillLevelLabel.setEnabled(true);
+            startStockfishVsHuman();
+            JOptionPane.getRootFrame().dispose(); // Close dialog
+        });
+
+        panel.add(whiteButton);
+        panel.add(blackButton);
+
+        JOptionPane.showOptionDialog(
+                this,
+                panel,
+                "Choose Stockfish Color",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                new Object[]{},
+                null
+        );
     }
 
     private void refreshBoard() {
@@ -235,25 +256,24 @@ public class ChessGameGUI extends JFrame {
 
     private void handleSquareClick(int row, int col) {
         try {
-            boolean moveResult = game.handleSquareSelection(row, col);
-            clearHighlights();
+            // Only allow human moves if it's not Stockfish's turn
+            if (stockfishColor == null || game.getCurrentPlayerColor() != stockfishColor) {
+                boolean moveResult = game.handleSquareSelection(row, col);
+                clearHighlights();
 
-            if (moveResult) {
-                checkForPawnPromotion(row, col);
-                refreshBoard();
-                checkGameState();
-                checkGameOver();
-
-                // Show Stockfish's best move if it's White's turn and Stockfish plays Black
-                if (stockfishPlaysBlack && game.getCurrentPlayerColor() == PieceColor.WHITE) {
-                    SwingUtilities.invokeLater(this::showStockfishBestMove);
+                if (moveResult) {
+                    checkForPawnPromotion(row, col);
+                    refreshBoard();
+                    checkGameState();
+                    checkGameOver();
+                } else if (game.isPieceSelected()) {
+                    highlightLegalMoves(new Position(row, col));
                 }
+            }
 
-                if (stockfishPlaysBlack && game.getCurrentPlayerColor() == PieceColor.BLACK) {
-                    SwingUtilities.invokeLater(this::playStockfishMove);
-                }
-            } else if (game.isPieceSelected()) {
-                highlightLegalMoves(new Position(row, col));
+            // If it's Stockfish's turn, play its move
+            if (stockfishColor != null && game.getCurrentPlayerColor() == stockfishColor) {
+                SwingUtilities.invokeLater(this::playStockfishMove);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -274,7 +294,6 @@ public class ChessGameGUI extends JFrame {
     private void checkGameState() {
         PieceColor currentPlayer = game.getCurrentPlayerColor();
         boolean inCheck = game.isInCheck(currentPlayer);
-
         if (inCheck) {
             JOptionPane.showMessageDialog(this, currentPlayer + " is in check!");
         }
@@ -282,10 +301,8 @@ public class ChessGameGUI extends JFrame {
 
     private void highlightLegalMoves(Position position) {
         List<Position> legalMoves = game.getLegalMovesForPieceAt(position);
-
         for (Position move : legalMoves) {
             Piece movingPiece = game.getBoard().getPiece(position.getRow(), position.getColumn());
-
             if (movingPiece != null && game.isEnPassantMove(position, move, movingPiece)) {
                 squares[move.getRow()][move.getColumn()].setBackground(Color.PINK);
             } else if (game.isCastlingMove(position, move)) {
@@ -365,15 +382,18 @@ public class ChessGameGUI extends JFrame {
 
     private void resetGame() {
         game.resetGame();
-        if (stockfishPlaysBlack) {
+        if (stockfishColor != null) {
             game.setStockfishSkillLevel(stockfishSkillLevel);
         }
         refreshBoard();
+        // If Stockfish plays White, make its move immediately after reset
+        if (stockfishColor == PieceColor.WHITE) {
+            SwingUtilities.invokeLater(this::playStockfishMove);
+        }
     }
 
     private void checkGameOver() {
         PieceColor currentPlayer = game.getCurrentPlayerColor();
-
         if (game.isCheckmate(currentPlayer)) {
             int response = JOptionPane.showConfirmDialog(this, "Checkmate! Would you like to play again?", "Game Over", JOptionPane.YES_NO_OPTION);
             if (response == JOptionPane.YES_OPTION) {
@@ -401,9 +421,7 @@ public class ChessGameGUI extends JFrame {
         if (selectedOption != null) {
             int row = pawn.getPosition().getRow();
             int col = pawn.getPosition().getColumn();
-
             game.getBoard().setPiece(row, col, null);
-
             Piece promotedPiece = null;
             switch (selectedOption) {
                 case "Queen":
@@ -419,20 +437,17 @@ public class ChessGameGUI extends JFrame {
                     promotedPiece = new Knight(pawn.getColor(), pawn.getPosition());
                     break;
             }
-
             if (promotedPiece != null) {
                 game.getBoard().setPiece(row, col, promotedPiece);
             }
-
             refreshBoard();
         }
     }
 
     private void startStockfishVsHuman() {
         resetGame();
-        stockfishPlaysBlack = true;
-        game.setStockfishSkillLevel(stockfishSkillLevel);
-        JOptionPane.showMessageDialog(this, "Stockfish will play as Black at level " + stockfishSkillLevel + ". You start as White.");
+        String colorText = stockfishColor == PieceColor.WHITE ? "White" : "Black";
+        JOptionPane.showMessageDialog(this, "Stockfish will play as " + colorText + " at level " + stockfishSkillLevel + ".");
         refreshBoard();
     }
 
@@ -441,20 +456,18 @@ public class ChessGameGUI extends JFrame {
         refreshBoard();
         checkGameState();
         checkGameOver();
+        // If Stockfish just moved and it's still its turn, play again
+        if (stockfishColor != null && game.getCurrentPlayerColor() == stockfishColor) {
+            SwingUtilities.invokeLater(this::playStockfishMove);
+        }
     }
 
     private void showStockfishBestMove() {
-        // Clear any previous highlights
         clearHighlights();
-
-        // Get Stockfish's best move
         String stockfishMove = game.getStockfishMove();
         if (stockfishMove != null && stockfishMove.length() == 4) {
-            // Parse the move (e.g., "e2e4")
             Position start = new Position(8 - (stockfishMove.charAt(1) - '0'), stockfishMove.charAt(0) - 'a');
             Position end = new Position(8 - (stockfishMove.charAt(3) - '0'), stockfishMove.charAt(2) - 'a');
-
-            // Highlight the start and end positions with a distinct color (e.g., yellow)
             squares[start.getRow()][start.getColumn()].setBackground(Color.YELLOW);
             squares[end.getRow()][end.getColumn()].setBackground(Color.YELLOW);
         } else {
@@ -467,7 +480,7 @@ public class ChessGameGUI extends JFrame {
             System.out.println("Error: Headless environment detected. GUI cannot be created.");
             System.exit(1);
         } else {
-            System.setProperty("sun.java3d.uiScale", "4");
+            System.setProperty("sun.java2d.uiScale", "4");
             SwingUtilities.invokeLater(ChessGameGUI::new);
         }
     }
